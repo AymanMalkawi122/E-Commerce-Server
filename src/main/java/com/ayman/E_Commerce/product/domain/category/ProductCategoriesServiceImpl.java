@@ -5,7 +5,6 @@ import com.ayman.E_Commerce.core.ResponseState;
 import com.ayman.E_Commerce.core.exceptions.RepositoryException;
 import com.ayman.E_Commerce.product.infrastructure.category.ProductCategoriesService;
 import com.ayman.E_Commerce.product.infrastructure.category.ProductCategory;
-import com.ayman.E_Commerce.product.infrastructure.product.Product;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -41,7 +40,7 @@ public class ProductCategoriesServiceImpl implements ProductCategoriesService {
     public ResponseState<Optional<ProductCategory>> getProductCategoryById(Long id) {
         final Optional<ProductCategory> result = repository.findById(id);
         if (result.isEmpty()) {
-            throw new EntityNotFoundException(BaseRepository.entityNotFoundMessage(id.toString()));
+            throw new EntityNotFoundException(repository.entityNotFoundMessage(id.toString()));
         }
         return new ResponseState<>(result, HttpStatus.OK);
     }

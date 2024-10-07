@@ -4,7 +4,10 @@ import com.ayman.E_Commerce.cart.infrastructure.Cart;
 import com.ayman.E_Commerce.cart.infrastructure.CartsService;
 import com.ayman.E_Commerce.core.BaseRepository;
 import com.ayman.E_Commerce.core.ResponseState;
-import com.ayman.E_Commerce.product.infrastructure.product.ProductsService;
+import com.ayman.E_Commerce.core.UtilMethods;
+import com.ayman.E_Commerce.product.domain.product.ProductsRepository;
+import com.ayman.E_Commerce.product.infrastructure.product.Product;
+import com.ayman.E_Commerce.user.infrastructure.User;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -20,48 +23,89 @@ import java.util.Optional;
 public class CartsServiceImpl implements CartsService {
 
     private final CartsRepository cartsRepository;
-    private final ProductsService productsService;
+    private final ProductsRepository productsRepository;
 
     @Autowired
-    public CartsServiceImpl(CartsRepository cartsRepository, ProductsService productsService) {
+    public CartsServiceImpl(CartsRepository cartsRepository, ProductsRepository productsService) {
         this.cartsRepository = cartsRepository;
-        this.productsService = productsService;
+        this.productsRepository = productsService;
     }
 
     @Override
-    public ResponseState<Cart> createCart(Cart review) {
-        final boolean productExists = productsService.existsById(review.getProductId()).getData();
-        if(!productExists) {
-            throw new EntityNotFoundException(BaseRepository.entityNotFoundMessage("Product", review.getProductId().toString()));
-        }
-        //TODO check if user is valid
-        return new ResponseState<>(cartsRepository.save(review), HttpStatus.CREATED);
+    public ResponseState<Cart> createCart(Cart cart, User user) {
+        UtilMethods.throwIfNotOwner(user, cart.getUserId());
+        return new ResponseState<>(
+                cartsRepository.ifIsNewElseThrow(
+                        cart.getId(),
+                        () -> cartsRepository.save(cart)
+                ), HttpStatus.CREATED);
     }
 
     @Override
-    public ResponseState<List<Cart>> getCarts(Specification<Cart> spec, int page, int size) {
+    public ResponseState<List<Cart>> getCarts(int page, int size, Specification<Cart> spec, User user) {
+        UtilMethods.throwIfNotAdmin(user);
         Pageable pageable = PageRequest.of(page, size);
         return new ResponseState<>(cartsRepository.findAll(spec, pageable).toList(), HttpStatus.OK);
     }
 
     @Override
-    public ResponseState<Optional<Cart>> getCartById(Long id) {
-        final Optional<Cart> result = cartsRepository.findById(id);
-        if (result.isEmpty()) {
-            throw new EntityNotFoundException(BaseRepository.entityNotFoundMessage(id.toString()));
+    public ResponseState<Cart> getCartById(Long id, User user) {
+        final Cart result = cartsRepository.ifExistsElseThrow(id, (cart) -> {
+            UtilMethods.throwIfNotOwnerOrAdmin(user, cart.getUserId());
+            return cart;
+        });
+        return new ResponseState<>(result, HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseState<Cart> updateCart(Cart cart, User user) {
+        Cart result = cartsRepository.ifExistsElseThrow(
+                cart.getId(),
+                () -> {
+                    UtilMethods.throwIfNotOwnerOrAdmin(user, cart.getUserId());
+                    return cartsRepository.save(cart);
+                }
+        );
+        return new ResponseState<>(result, HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseState<Cart> addProduct(Long productId, Long cartId, User user) {
+        final Optional<Product> product = productsRepository.findById(productId);
+        if (product.isEmpty()) {
+            throw new EntityNotFoundException(productsRepository.entityNotFoundMessage(productId.toString()));
         }
+        final Cart result = cartsRepository.ifExistsElseThrow(
+                cartId,
+                (cart) -> {
+                    UtilMethods.throwIfNotOwner(user, cart.getUserId());
+                    cart.addProduct(product.get());
+                    return cart;
+                }
+        );
         return new ResponseState<>(result, HttpStatus.OK);
     }
 
     @Override
-    public ResponseState<Cart> updateCart(Cart review) {
-        Cart result = cartsRepository.ifExistsElseThrow(review.getId(), () -> cartsRepository.save(review));
+    public ResponseState<Cart> removeProduct(Long productId, Long cartId, User user) {
+        final Cart result = cartsRepository.ifExistsElseThrow(
+                cartId,
+                (cart) -> {
+                    UtilMethods.throwIfNotOwner(user, cart.getUserId());
+                    cart.removeProduct(productId);
+                    return cart;
+                }
+        );
         return new ResponseState<>(result, HttpStatus.OK);
     }
 
     @Override
-    public ResponseState<String> deleteCartById(Long id) {
-        cartsRepository.deleteById(id);
+    public ResponseState<String> deleteCartById(Long id, User user) {
+        cartsRepository.ifExistsElseThrow(id, (cart) -> {
+            UtilMethods.throwIfNotOwner(user, cart.getUserId());
+            cartsRepository.deleteById(id);
+            return null;
+        });
         return new ResponseState<>(BaseRepository.successfulDeletionMessage, null, HttpStatus.NO_CONTENT);
     }
 }

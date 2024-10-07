@@ -6,4 +6,8 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ProductsRepository extends BaseRepository<Product, Long> {
+    @Override
+    default String entityName() {
+        return "Product";
+    }
 }

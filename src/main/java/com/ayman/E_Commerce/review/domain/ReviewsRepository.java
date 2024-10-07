@@ -6,4 +6,8 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ReviewsRepository extends BaseRepository<Review, Long> {
+    @Override
+    default String entityName() {
+        return "Review";
+    }
 }

@@ -9,6 +9,11 @@ import java.util.Optional;
 
 @Repository
 public interface ProductCategoriesRepository extends BaseRepository<ProductCategory, Long> {
+    @Override
+    default String entityName() {
+        return "Product Category";
+    }
+
     Optional<ProductCategory> findByName(String name);
 
     default ProductCategory throwIfInvalid(ProductCategory category) {

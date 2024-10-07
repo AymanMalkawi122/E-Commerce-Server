@@ -2,11 +2,11 @@ package com.ayman.E_Commerce.product.domain.product;
 
 import com.ayman.E_Commerce.core.BaseRepository;
 import com.ayman.E_Commerce.core.ResponseState;
-import com.ayman.E_Commerce.core.exceptions.RepositoryException;
+import com.ayman.E_Commerce.core.UtilMethods;
 import com.ayman.E_Commerce.product.domain.category.ProductCategoriesRepository;
 import com.ayman.E_Commerce.product.infrastructure.product.Product;
-import com.ayman.E_Commerce.product.infrastructure.category.ProductCategory;
 import com.ayman.E_Commerce.product.infrastructure.product.ProductsService;
+import com.ayman.E_Commerce.user.infrastructure.User;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -30,9 +30,9 @@ public class ProductsServiceImpl implements ProductsService {
     }
 
     @Override
-    public ResponseState<Product> createProduct(Product product) {
+    public ResponseState<Product> createProduct(Product product, User user) {
+        UtilMethods.throwIfNotOwner(user, product.getOwnerId());
         product.setCategory(categoriesRepository.throwIfInvalid(product.getCategory()));
-
         return new ResponseState<>(productsRepository.save(product), HttpStatus.CREATED);
     }
 
@@ -43,12 +43,12 @@ public class ProductsServiceImpl implements ProductsService {
     }
 
     @Override
-    public ResponseState<Optional<Product>> getProductById(Long id) {
+    public ResponseState<Product> getProductById(Long id) {
         final Optional<Product> result = productsRepository.findById(id);
         if (result.isEmpty()) {
-            throw new EntityNotFoundException(BaseRepository.entityNotFoundMessage(id.toString()));
+            throw new EntityNotFoundException(productsRepository.entityNotFoundMessage(id.toString()));
         }
-        return new ResponseState<>(result, HttpStatus.OK);
+        return new ResponseState<>(result.get(), HttpStatus.OK);
     }
 
     @Override
@@ -57,14 +57,17 @@ public class ProductsServiceImpl implements ProductsService {
     }
 
     @Override
-    public ResponseState<Product> updateProduct(Product product) {
+    public ResponseState<Product> updateProduct(Product product, User user) {
+        UtilMethods.throwIfNotOwner(user, product.getOwnerId());
         product.setCategory(categoriesRepository.throwIfInvalid(product.getCategory()));
         Product result = productsRepository.ifExistsElseThrow(product.getId(), () -> productsRepository.save(product));
         return new ResponseState<>(result, HttpStatus.OK);
     }
 
     @Override
-    public ResponseState<String> deleteProductById(Long id) {
+    public ResponseState<String> deleteProductById(Long id, User user) {
+        Product product = getProductById(id).getData();
+        UtilMethods.throwIfNotOwner(user, product.getOwnerId());
         productsRepository.deleteById(id);
         return new ResponseState<>(BaseRepository.successfulDeletionMessage, null, HttpStatus.NO_CONTENT);
     }

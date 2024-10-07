@@ -1,19 +1,21 @@
 package com.ayman.E_Commerce.product.presentation;
 
+import com.ayman.E_Commerce.core.Constants;
 import com.ayman.E_Commerce.product.domain.product.ProductSpecification;
 import com.ayman.E_Commerce.product.infrastructure.product.Product;
-import com.ayman.E_Commerce.product.infrastructure.product.ProductFieldNames;
 import com.ayman.E_Commerce.product.infrastructure.product.ProductsService;
+import com.ayman.E_Commerce.user.infrastructure.User;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("product")
@@ -27,8 +29,10 @@ public class ProductsController {
     }
 
     @PostMapping("/")
+    @PreAuthorize("hasRole('" + Constants.USER_ROLE_NAME + "')")
     public ResponseEntity<Product> createNewProduct(@RequestBody @Valid Product product) {
-        return service.createProduct(product).toResponseEntity();
+        final User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return service.createProduct(product, user).toResponseEntity();
     }
 
     @GetMapping("/")
@@ -42,17 +46,22 @@ public class ProductsController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Optional<Product>> getProductById(@PathVariable @Positive Long id) {
+    public ResponseEntity<Product> getProductById(@PathVariable @Positive Long id) {
         return service.getProductById(id).toResponseEntity();
     }
 
     @PutMapping("/")
+    @PreAuthorize("hasRole('" + Constants.USER_ROLE_NAME + "')")
     public ResponseEntity<Product> updateProduct(@RequestBody @Valid Product product) {
-        return service.updateProduct(product).toResponseEntity();
+        final User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return service.updateProduct(product, user).toResponseEntity();
+        //TODO prevent user from updating rating value
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('" + Constants.USER_ROLE_NAME +  "','"+ Constants.ADMIN_ROLE_NAME +")")
     public ResponseEntity<String> DeleteProductById(@PathVariable @Positive Long id) {
-        return service.deleteProductById(id).toResponseEntity();
+        final User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return service.deleteProductById(id, user).toResponseEntity();
     }
 }

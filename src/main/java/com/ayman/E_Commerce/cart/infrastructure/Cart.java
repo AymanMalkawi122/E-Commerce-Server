@@ -1,5 +1,6 @@
 package com.ayman.E_Commerce.cart.infrastructure;
 
+import com.ayman.E_Commerce.product.infrastructure.product.Product;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
@@ -11,8 +12,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
-@Entity(name = "review")
+@Entity(name = "cart")
 @Getter
 @Setter
 @AllArgsConstructor
@@ -23,37 +25,19 @@ public class Cart {
     @Column(nullable = false, updatable = false)
     private Long id;
 
-    @DecimalMin("0.0")
-    @DecimalMax("5.0")
-    private Double rating;
-
-    @Column(nullable = false, columnDefinition = "TEXT")
-    private String comment;
-
     @NotNull
     @Column(nullable = false)
-    private LocalDateTime date;
+    private Long userId;
 
-    @NotNull
-    @Column(nullable = false)
-    private String reviewerName;
+    @ManyToMany
+    Set<Product> products;
 
-    @NotNull
-    @Email
-    @Column(nullable = false)
-    private String reviewerEmail;
+    public void addProduct(Product product) {
+        products.add(product);
+    }
 
-    @NotNull
-    @Column(nullable = false)
-    private Long reviewerId;
-
-    @NotNull
-    @Column(nullable = false)
-    private Long productId;
-
-    @PrePersist
-    protected void onCreate() {
-        date = LocalDateTime.now();
+    public void removeProduct(long productId) {
+        products.removeIf((product)-> product.getId() == productId);
     }
 }
 

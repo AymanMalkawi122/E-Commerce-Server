@@ -1,9 +1,9 @@
-package com.ayman.E_Commerce;
+package com.ayman.E_Commerce.security;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 
-@Configuration
-@EnableWebSecurity
-public class SecurityConfig {
-}
+//@Configuration
+//@EnableWebSecurity
+//public class SecurityConfig {
+//}

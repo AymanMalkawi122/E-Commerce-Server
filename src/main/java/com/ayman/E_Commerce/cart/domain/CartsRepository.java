@@ -6,4 +6,8 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface CartsRepository extends BaseRepository<Cart, Long> {
+    @Override
+    default String entityName() {
+        return "Cart";
+    }
 }

@@ -9,6 +9,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.boot.context.properties.bind.DefaultValue;
 
 import java.time.LocalDateTime;
 
@@ -44,15 +45,20 @@ public class Review {
     private String reviewerEmail;
 
     @NotNull
-    @Column(nullable = false)
-    private Long reviewerId;
+    @Column(nullable = false, updatable = false)
+    private Long userId;
 
     @NotNull
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private Long productId;
 
     @PrePersist
     protected void onCreate() {
+        date = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
         date = LocalDateTime.now();
     }
 }
